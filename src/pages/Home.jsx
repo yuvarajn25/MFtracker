@@ -16,19 +16,114 @@ import {
 } from "@chakra-ui/react";
 import React, { useEffect, useState } from "react";
 import CSVUpload from "../components/CSVUpload";
+import DataTable from "../components/DataTable";
+
 import supabase from "../supabase";
 import { fetchLastNav } from "../utils";
 
+const columns = [
+  {
+    Header: "Code",
+    accessor: "scheme_code",
+  },
+  {
+    Header: "Name",
+    accessor: "scheme_name",
+  },
+  {
+    Header: "Units",
+    accessor: "total_units",
+    isNumeric: true,
+    Cell: ({ value }) => parseFloat(value).toFixed(2),
+  },
+  {
+    Header: "Invested",
+    accessor: "total_amount",
+    isNumeric: true,
+  },
+  {
+    Header: "Nav Date",
+    accessor: "lastDate",
+    isNumeric: true,
+  },
+  // {
+  //   Header: "Last Nav Value",
+  //   accessor: "nav",
+  //   isNumeric: true,
+  //   Cell: ({ value }) => parseFloat(value).toFixed(2),
+  // },
+  {
+    Header: "Current Value",
+    accessor: "todayValue",
+    isNumeric: true,
+    Cell: ({ value }) => parseFloat(value).toFixed(2),
+  },
+  {
+    Header: "Revenue",
+    accessor: "difference",
+    isNumeric: true,
+    Cell: ({ value }) => parseFloat(value).toFixed(2),
+  },
+  {
+    Header: "Revenue %",
+    Cell: ({
+      row: {
+        values: { difference, total_amount },
+      },
+    }) => {
+      const percentage = ((difference / total_amount) * 100).toFixed(2);
+      return (
+        <>
+          <StatArrow type={difference > 0 ? "increase" : "decrease"} />
+          {percentage}
+        </>
+      );
+    },
+  },
+  {
+    Header: "Day Change",
+    accessor: "preValue",
+    Cell: ({
+      row: {
+        values: { todayValue, preValue },
+      },
+    }) => {
+      const dayDiff = todayValue - preValue;
+      return (
+        <>
+          <StatArrow type={dayDiff > 0 ? "increase" : "decrease"} />
+          {dayDiff.toFixed(2)}
+        </>
+      );
+    },
+  },
+];
+
+const SUMMARY_KEYS_HEADER = {
+  totalInvested: "Total Invested",
+  currentValue: "Current Value",
+  totalRealized: "Realized",
+  totalUnRealized: "Un Realized",
+  profitPercentage: "Difference %",
+  totalDayChange: "Day Change",
+  dayChangePercentage: "Day Change %",
+};
+
 function Home() {
-  const [summary, setSummary] = useState([]);
+  const [summaryData, setSummaryData] = useState([]);
   const [modelOpen, setModelOpen] = useState(false);
-  const [totalInvested, setTotalInvested] = useState(0);
-  const [currentValue, setCurrentValue] = useState(0);
-  const [totalPreValue, setTotalPreValue] = useState(0);
-  const [totalDayChange, setTotalDayChange] = useState(0);
+  const [summary, setSummary] = useState({
+    totalInvested: 0,
+    currentValue: 0,
+    totalDayChange: 0,
+    totalRealized: 0,
+    totalUnRealized: 0,
+    profitPercentage: 0,
+    dayChangePercentage: 0,
+  });
 
   useEffect(async () => {
-    if (summary.length === 0) {
+    if (summaryData.length === 0) {
       const user = supabase.auth.user();
       const { data } = await supabase.rpc("mf_summary").eq("user_id", user.id);
       const response = await Promise.all(
@@ -47,119 +142,58 @@ function Home() {
           };
         })
       );
-      const tmpTI = response.reduce((sum, item) => sum + item.total_amount, 0);
-      const tmpCV = response.reduce((sum, item) => sum + item.todayValue, 0);
-      const tmpPV = response.reduce((sum, item) => sum + item.preValue, 0);
-      setSummary(response);
-      setTotalInvested(tmpTI);
-      setCurrentValue(tmpCV);
-      setTotalDayChange(tmpCV - tmpPV);
-      setTotalPreValue(tmpPV);
+      const totalInvested = response.reduce(
+        (sum, item) => sum + item.total_amount,
+        0
+      );
+      const currentValue = response.reduce(
+        (sum, item) => sum + item.todayValue,
+        0
+      );
+      const totalPreValue = response.reduce(
+        (sum, item) => sum + item.preValue,
+        0
+      );
+      const totalRealized = response.reduce(
+        (sum, item) => sum + item.realised_amount,
+        0
+      );
+      const totalUnRealized = currentValue - totalInvested - totalRealized;
+      setSummaryData(response);
+      setSummary({
+        totalInvested,
+        currentValue,
+        totalDayChange: currentValue - totalPreValue,
+        totalRealized,
+        totalUnRealized,
+        isProfit: currentValue - totalInvested - totalRealized > 0,
+        profitPercentage: ((totalUnRealized / totalInvested) * 100).toFixed(2),
+        dayChangePercentage: (
+          ((currentValue - totalPreValue) / totalPreValue) *
+          100
+        ).toFixed(2),
+      });
     }
-  }, [summary]);
+  }, [summaryData]);
   return (
     <Flex direction="column" width="100%" height="100vh">
       <Button onClick={() => setModelOpen(true)}>Upload Transactions</Button>
       <CSVUpload isOpen={modelOpen} onClose={() => setModelOpen(false)} />
 
       <Flex minHeight={150} alignItems="center" justifyContent="space-evenly">
-        <Flex>
-          <Stat>
-            <StatLabel> Total Invested</StatLabel>
-            <StatNumber>{totalInvested.toFixed(2)}</StatNumber>
-          </Stat>
-        </Flex>
-        <Flex>
-          <Stat>
-            <StatLabel> Current Value</StatLabel>
-            <StatNumber>
-              <StatArrow
-                type={
-                  currentValue - totalInvested > 0 ? "increase" : "decrease"
-                }
-              />
-              {currentValue.toFixed(2)}
-            </StatNumber>
-          </Stat>
-        </Flex>
-        <Flex>
-          <Stat>
-            <StatLabel>Difference %</StatLabel>
-            <StatNumber>
-              <StatArrow
-                fontSize={23}
-                type={
-                  currentValue - totalInvested > 0 ? "increase" : "decrease"
-                }
-              />
-              {(((currentValue - totalInvested) / totalInvested) * 100).toFixed(
-                2
-              )}
-              %
-            </StatNumber>
-          </Stat>
-        </Flex>
-        <Flex>
-          <Stat>
-            <StatLabel>Day Change</StatLabel>
-            <StatNumber>
-              <StatArrow type={totalDayChange > 0 ? "increase" : "decrease"} />
-              {totalDayChange.toFixed(2)}
-            </StatNumber>
-          </Stat>
-        </Flex>
-        <Flex>
-          <Stat>
-            <StatLabel>Day Change %</StatLabel>
-            <StatNumber>
-              <StatArrow type={totalDayChange > 0 ? "increase" : "decrease"} />
-              {(((currentValue - totalPreValue) / totalPreValue) * 100).toFixed(
-                2
-              )}{" "}
-              %
-            </StatNumber>
-          </Stat>
-        </Flex>
+        {Object.keys(SUMMARY_KEYS_HEADER).map((key) => (
+          <Flex>
+            <Stat>
+              <StatLabel>{SUMMARY_KEYS_HEADER[key]}</StatLabel>
+              <StatNumber>
+                {/* <StatArrow type={summary[key] > 0 ? "increase" : "decrease"} /> */}
+                {parseFloat(summary[key]).toFixed(2)}
+              </StatNumber>
+            </Stat>
+          </Flex>
+        ))}
       </Flex>
-      <Table variant="striped" colorScheme="twitter">
-        <Thead>
-          <Tr>
-            <Th>Code</Th>
-            <Th>Name</Th>
-            <Th isNumeric>Units</Th>
-            <Th isNumeric>Total Amount</Th>
-            <Th>Last Nav Date</Th>
-            <Th>Last Nav Value</Th>
-            <Th>Last Total Value</Th>
-            <Th>Revenue Value</Th>
-            <Th>Revenue Percentage</Th>
-            <Th>Day Change</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {summary.map((s) => {
-            return (
-              <Tr>
-                <Td>{s.scheme_code}</Td>
-                <Td>{s.scheme_name}</Td>
-                <Td isNumeric>{s.total_units}</Td>
-                <Td isNumeric>{s.total_amount}</Td>
-                <Td>{s.lastDate}</Td>
-                <Td>{parseFloat(s.nav).toFixed(2)}</Td>
-                <Td isNumeric>{s.todayValue.toFixed(2)}</Td>
-                <Td isNumeric>{s.difference.toFixed(2)}</Td>
-                <Td>
-                  <StatArrow
-                    type={s.difference > 0 ? "increase" : "decrease"}
-                  />
-                  {((s.difference / s.total_amount) * 100).toFixed(2)}
-                </Td>
-                <Td>{(s.todayValue - s.preValue).toFixed(2)}</Td>
-              </Tr>
-            );
-          })}
-        </Tbody>
-      </Table>
+      <DataTable columns={columns} data={summaryData} />
     </Flex>
   );
 }
