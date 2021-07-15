@@ -8,7 +8,12 @@ export default function DataTable({ columns, data }) {
     useTable({ columns, data }, useSortBy);
 
   return (
-    <Table variant="striped" colorScheme="telegram" {...getTableProps()}>
+    <Table
+      manualSortBy={true}
+      variant="striped"
+      colorScheme="telegram"
+      {...getTableProps()}
+    >
       <Thead>
         {headerGroups.map((headerGroup) => (
           <Tr {...headerGroup.getHeaderGroupProps()}>
@@ -37,11 +42,17 @@ export default function DataTable({ columns, data }) {
           prepareRow(row);
           return (
             <Tr {...row.getRowProps()}>
-              {row.cells.map((cell) => (
-                <Td {...cell.getCellProps()} isNumeric={cell.column.isNumeric}>
-                  {cell.render("Cell")}
-                </Td>
-              ))}
+              {row.cells.map((cell) => {
+                // console.log(`cell.getCellProps()`, cell.getCellProps());
+                return (
+                  <Td
+                    {...cell.getCellProps()}
+                    isNumeric={cell.column.isNumeric}
+                  >
+                    {cell.render("Cell")}
+                  </Td>
+                );
+              })}
             </Tr>
           );
         })}

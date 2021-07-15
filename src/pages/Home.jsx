@@ -1,4 +1,5 @@
 import { Flex } from "@chakra-ui/layout";
+import ReactTable from "react-table";
 import {
   Button,
   Stat,
@@ -40,6 +41,11 @@ const columns = [
     Header: "Invested",
     accessor: "total_amount",
     isNumeric: true,
+    sortable: true,
+    sortMethod: (a, b, desc) => {
+      console.log(a, b);
+      return;
+    },
   },
   {
     Header: "Nav Date",
@@ -66,16 +72,23 @@ const columns = [
   },
   {
     Header: "Revenue %",
+    accessor: "revenue%",
+    sortable: true,
+    sortType: ({ values: row1 }, { values: row2 }, columnId, desc) => {
+      const p1 = (row1.difference / row1.total_amount) * 100;
+      const p2 = (row2.difference / row2.total_amount) * 100;
+      return p1 > p2 ? 1 : -1;
+    },
     Cell: ({
       row: {
         values: { difference, total_amount },
       },
     }) => {
-      const percentage = ((difference / total_amount) * 100).toFixed(2);
+      const percentage = (difference / total_amount) * 100;
       return (
         <>
           <StatArrow type={difference > 0 ? "increase" : "decrease"} />
-          {percentage}
+          {percentage.toFixed(2)}
         </>
       );
     },
@@ -83,6 +96,11 @@ const columns = [
   {
     Header: "Day Change",
     accessor: "preValue",
+    sortType: ({ values: row1 }, { values: row2 }, columnId, desc) => {
+      const r1 = row1.todayValue - row1.preValue;
+      const r2 = row2.todayValue - row2.preValue;
+      return r1 > r2 ? 1 : -1;
+    },
     Cell: ({
       row: {
         values: { todayValue, preValue },
@@ -179,7 +197,6 @@ function Home() {
     <Flex direction="column" width="100%" height="100vh">
       <Button onClick={() => setModelOpen(true)}>Upload Transactions</Button>
       <CSVUpload isOpen={modelOpen} onClose={() => setModelOpen(false)} />
-
       <Flex minHeight={150} alignItems="center" justifyContent="space-evenly">
         {Object.keys(SUMMARY_KEYS_HEADER).map((key) => (
           <Flex>
@@ -193,6 +210,7 @@ function Home() {
           </Flex>
         ))}
       </Flex>
+      {/* <ReactTable columns={columns} data={summaryData} />; */}
       <DataTable columns={columns} data={summaryData} />
     </Flex>
   );
