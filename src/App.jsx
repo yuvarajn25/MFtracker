@@ -12,6 +12,7 @@ import "./App.css";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import supabase from "./supabase";
+import Header from "./components/Header";
 
 function App(props) {
   const [session, setSession] = useState(supabase.auth.session());
@@ -24,18 +25,21 @@ function App(props) {
     return (
       // Show the component only when the user is logged in
       // Otherwise, redirect the user to /signin page
-      <Route
-        {...rest}
-        render={(props) =>
-          session ? (
-            <div>
-              <Component {...props} />
-            </div>
-          ) : (
-            <Redirect to="/login" />
-          )
-        }
-      />
+      <div>
+        <Header />
+        <Route
+          {...rest}
+          render={(props) =>
+            session ? (
+              <div>
+                <Component {...props} />
+              </div>
+            ) : (
+              <Redirect to="/login" />
+            )
+          }
+        />
+      </div>
     );
   };
 

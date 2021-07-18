@@ -124,7 +124,7 @@ const SUMMARY_KEYS_HEADER = {
 
 function Home() {
   const [summaryData, setSummaryData] = useState([]);
-  const [modelOpen, setModelOpen] = useState(false);
+
   const [summary, setSummary] = useState({
     totalInvested: 0,
     currentValue: 0,
@@ -192,8 +192,6 @@ function Home() {
   }, [summaryData]);
   return (
     <Flex direction="column" width="100%" height="100vh">
-      <Button onClick={() => setModelOpen(true)}>Upload Transactions</Button>
-      <CSVUpload isOpen={modelOpen} onClose={() => setModelOpen(false)} />
       <SimpleGrid minChildWidth="120px" spacing="40px" padding="40px">
         {Object.keys(SUMMARY_KEYS_HEADER).map((key) => (
           <Box>
