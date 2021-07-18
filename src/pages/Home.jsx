@@ -1,19 +1,14 @@
 import { Flex } from "@chakra-ui/layout";
-import ReactTable from "react-table";
 import {
+  Box,
   Button,
+  Grid,
+  GridItem,
+  SimpleGrid,
   Stat,
   StatArrow,
-  StatHelpText,
   StatLabel,
   StatNumber,
-  Table,
-  Tbody,
-  Td,
-  Text,
-  Th,
-  Thead,
-  Tr,
 } from "@chakra-ui/react";
 import React, { useEffect, useState } from "react";
 import CSVUpload from "../components/CSVUpload";
@@ -179,17 +174,19 @@ function Home() {
       const totalUnRealized = currentValue - totalInvested - totalRealized;
       setSummaryData(response);
       setSummary({
-        totalInvested,
-        currentValue,
-        totalDayChange: currentValue - totalPreValue,
-        totalRealized,
-        totalUnRealized,
+        totalInvested: totalInvested.toFixed(2),
+        currentValue: currentValue.toFixed(2),
+        totalDayChange: (currentValue - totalPreValue).toFixed(2),
+        totalRealized: totalRealized.toFixed(2),
+        totalUnRealized: totalUnRealized.toFixed(2),
         isProfit: currentValue - totalInvested - totalRealized > 0,
-        profitPercentage: ((totalUnRealized / totalInvested) * 100).toFixed(2),
-        dayChangePercentage: (
+        profitPercentage: `${((totalUnRealized / totalInvested) * 100).toFixed(
+          2
+        )}%`,
+        dayChangePercentage: `${(
           ((currentValue - totalPreValue) / totalPreValue) *
           100
-        ).toFixed(2),
+        ).toFixed(2)}%`,
       });
     }
   }, [summaryData]);
@@ -197,20 +194,19 @@ function Home() {
     <Flex direction="column" width="100%" height="100vh">
       <Button onClick={() => setModelOpen(true)}>Upload Transactions</Button>
       <CSVUpload isOpen={modelOpen} onClose={() => setModelOpen(false)} />
-      <Flex minHeight={150} alignItems="center" justifyContent="space-evenly">
+      <SimpleGrid minChildWidth="120px" spacing="40px" padding="40px">
         {Object.keys(SUMMARY_KEYS_HEADER).map((key) => (
-          <Flex>
+          <Box>
             <Stat>
               <StatLabel>{SUMMARY_KEYS_HEADER[key]}</StatLabel>
               <StatNumber>
                 {/* <StatArrow type={summary[key] > 0 ? "increase" : "decrease"} /> */}
-                {parseFloat(summary[key]).toFixed(2)}
+                {summary[key]}
               </StatNumber>
             </Stat>
-          </Flex>
+          </Box>
         ))}
-      </Flex>
-      {/* <ReactTable columns={columns} data={summaryData} />; */}
+      </SimpleGrid>
       <DataTable columns={columns} data={summaryData} />
     </Flex>
   );
