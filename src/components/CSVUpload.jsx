@@ -2,7 +2,6 @@ import { Table, Tbody, Td, Tfoot, Th, Thead, Tr } from "@chakra-ui/react";
 import React from "react";
 import { useState } from "react";
 import CSVReader from "react-csv-reader";
-import supabase from "../supabase";
 import {
   Button,
   Modal,
@@ -14,7 +13,7 @@ import {
   ModalOverlay,
   useDisclosure,
 } from "@chakra-ui/react";
-import moment from "moment";
+import { saveTransaction } from "../utils";
 
 const papaparseOptions = {
   header: true,
@@ -31,15 +30,7 @@ export default function CSVUpload({ isOpen, onClose }) {
   };
 
   const onSave = async () => {
-    const user = supabase.auth.user();
-    const payload = data.map((d) => ({
-      ...d,
-      userId: user.id,
-      date: moment(new Date(d.date)).unix(),
-    }));
-    const { data: response, error } = await supabase
-      .from("transactions")
-      .insert(payload);
+    await saveTransaction(data);
     handleClose();
   };
 

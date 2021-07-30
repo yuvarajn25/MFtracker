@@ -27,7 +27,9 @@ export const fetchLastNav = async (schemeCode) => {
       return returnFormattedValue(navValues);
   }
   const response = await axios.get(`https://api.mfapi.in/mf/${schemeCode}`);
-  const data = response?.data?.data.splice(0, 5);
+  const data = navValues.length
+    ? response?.data?.data.splice(0, 5)
+    : response?.data?.data;
   await supabase.from("navHistory").upsert(
     data.map((d) => {
       const date = moment(d.date, DATE_FORMAT).unix();
@@ -40,4 +42,17 @@ export const fetchLastNav = async (schemeCode) => {
     })
   );
   return data.splice(0, 2);
+};
+
+export const saveTransaction = async (data = []) => {
+  const user = supabase.auth.user();
+  const payload = data.map((d) => ({
+    ...d,
+    userId: user.id,
+    date: moment(d.date, DATE_FORMAT).unix(),
+  }));
+  const { data: response, error } = await supabase
+    .from("transactions")
+    .insert(payload);
+  return response;
 };

@@ -11,7 +11,6 @@ import {
   StatNumber,
 } from "@chakra-ui/react";
 import React, { useEffect, useState } from "react";
-import CSVUpload from "../components/CSVUpload";
 import DataTable from "../components/DataTable";
 
 import supabase from "../supabase";
@@ -25,6 +24,10 @@ const columns = [
   {
     Header: "Name",
     accessor: "scheme_name",
+  },
+  {
+    Header: "Source",
+    accessor: "bank_name",
   },
   {
     Header: "Units",

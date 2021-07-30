@@ -1,0 +1,11 @@
+CREATE OR REPLACE FUNCTION public.mf_summary()
+ RETURNS TABLE(user_id uuid, bank_name varchar, scheme_code varchar, scheme_name text, total_units float, total_amount float, realised_amount float4)
+ LANGUAGE plpgsql
+AS
+$$
+ begin
+	return query 
+		select "userId", "bank", "schemeCode", "schemeName", sum(case  when "transactionType" = 'Purchase' then units else 0 - units end) as units, sum(case  when "transactionType" = 'Purchase' then amount else 0 - amount end) as amount, sum("realisedAmount") as "realisedAmount" from transactions  group by "schemeCode", "schemeName", "userId", "bank";
+end;
+
+$$
