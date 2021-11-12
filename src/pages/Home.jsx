@@ -14,7 +14,7 @@ import React, { useEffect, useState } from "react";
 import DataTable from "../components/DataTable";
 
 import supabase from "../supabase";
-import { fetchLastNav } from "../utils";
+import { fetchLastNavValues } from "../utils";
 
 const columns = [
   {
@@ -50,12 +50,12 @@ const columns = [
     accessor: "lastDate",
     isNumeric: true,
   },
-  // {
-  //   Header: "Last Nav Value",
-  //   accessor: "nav",
-  //   isNumeric: true,
-  //   Cell: ({ value }) => parseFloat(value).toFixed(2),
-  // },
+  {
+    Header: "Last Nav Value",
+    accessor: "nav",
+    isNumeric: true,
+    Cell: ({ value }) => parseFloat(value).toFixed(2),
+  },
   {
     Header: "Current Value",
     accessor: "todayValue",
@@ -142,9 +142,12 @@ function Home() {
     if (summaryData.length === 0) {
       const user = supabase.auth.user();
       const { data } = await supabase.rpc("mf_summary").eq("user_id", user.id);
+      const navValues = await fetchLastNavValues(
+        data.map((d) => d.scheme_code)
+      );
       const response = await Promise.all(
         data.map(async (d) => {
-          const [res, preValue] = await fetchLastNav(d.scheme_code);
+          const [res, preValue] = navValues[d.scheme_code];
           const todayValue = res.nav * d.total_units;
           const difference = todayValue - d.total_amount;
           return {

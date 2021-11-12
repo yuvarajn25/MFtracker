@@ -91,7 +91,7 @@ export default function CSVUpload({ isOpen, onClose }) {
           <Button onClick={onSave} colorScheme="blue" mr={3}>
             Save
           </Button>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={handleClose}>Cancel</Button>
         </ModalFooter>
       </ModalContent>
     </Modal>
