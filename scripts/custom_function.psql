@@ -9,3 +9,110 @@ $$
 end;
 
 $$
+
+CREATE OR REPLACE FUNCTION public.mf_summary(d int)
+ RETURNS TABLE(user_id uuid, bank_name varchar, scheme_code varchar, scheme_name text, total_units float, total_amount float, realised_amount float4)
+ LANGUAGE plpgsql
+AS
+$$
+ begin
+	return query 
+		select "userId", "bank", "schemeCode", "schemeName", sum(case  when "transactionType" = 'Purchase' then units else 0 - units end) as units, sum(case  when "transactionType" = 'Purchase' then amount else 0 - amount end) as amount, sum("realisedAmount") as "realisedAmount" from transactions where "date" <= $1  group by "schemeCode", "schemeName", "userId", "bank";
+end;
+
+$$
+
+
+CREATE OR REPLACE FUNCTION public.monthly_summary_by_scheme_code()
+ RETURNS TABLE(user_id uuid, month varchar, "scheme_code" varchar, "scheme_name" varchar, total_change float)
+ LANGUAGE plpgsql
+AS
+$$
+ begin
+	return query 
+		select 
+		"dayReport".user_id,
+      CAST(to_char(CAST(to_timestamp(date) at time zone 'Asia/Kolkata' AS date ),'Mon-YY') as varchar) as year_month,
+      "dayReport".scheme_code,
+      "dayReport".scheme_name,
+      CAST(SUM(COALESCE(day_change, unrealised_amount)) as float) as total_change
+    from "dayReport" group by 1, 2, 3, 4;
+end;
+$$
+
+CREATE OR REPLACE FUNCTION public.monthly_summary()
+ RETURNS TABLE(user_id uuid, month varchar, total_amount float, current_value float, total_change float)
+ LANGUAGE plpgsql
+AS
+$$
+ begin
+	return query 
+		select user_id, year_month, 
+			sum(tmp.total_amount) as total_amount, 
+			sum(tmp.current_value) as current_value,
+			sum(tmp.total_change) as total_change from (
+				select 
+					"dayReport".user_id,
+					CAST(to_char(CAST(to_timestamp(date) at time zone 'Asia/Kolkata' AS date ),'YY-MM') as varchar) as year_month,
+					"dayReport".scheme_code,
+					MAX("dayReport".total_amount) as total_amount,
+					MAX("dayReport".current_value) as current_value,
+					CAST(SUM(COALESCE(day_change, unrealised_amount)) as float) as total_change
+					from "dayReport" group by 1, 2, 3 order by 2)
+			 as tmp group by 1, 2 order by 2 desc;
+end;
+$$
+
+CREATE OR REPLACE FUNCTION public.monthly_summary(scheme_code varchar)
+	RETURNS TABLE(user_id uuid, month varchar, total_amount float, current_value float, total_change float)
+ 	LANGUAGE plpgsql
+AS
+$$
+ begin
+	return query 
+		select 
+			"dayReport".user_id,
+			CAST(to_char(CAST(to_timestamp(date) at time zone 'Asia/Kolkata' AS date ),'YY-MM') as varchar) as year_month,
+			"dayReport".scheme_code,
+			MAX("dayReport".total_amount) as total_amount,
+			MAX("dayReport".current_value) as current_value,
+			CAST(SUM(COALESCE(day_change, unrealised_amount)) as float) as total_change
+    from "dayReport" WHERE "dayReport".scheme_code = $1 group by 1, 2 order by 2 desc;
+end;
+$$
+
+
+CREATE OR REPLACE FUNCTION public.daily_summary(start_date integer)
+	RETURNS TABLE(user_id uuid, date_value varchar, total_amount float, current_value float, total_change float)
+ 	LANGUAGE plpgsql
+AS
+$$
+ begin
+	return query 
+		select 
+			"dayReport".user_id,
+			CAST(to_char(CAST(to_timestamp(date) at time zone 'Asia/Kolkata' AS date ),'YYYY-MM-DD') as varchar) as year_month,
+			SUM("dayReport".total_amount) as total_amount,
+			SUM("dayReport".current_value) as current_value,
+			CAST(SUM(COALESCE(day_change, unrealised_amount)) as float) as total_change
+    from "dayReport" WHERE date >= $1 group by 1, 2 order by 2 desc;
+end;
+$$
+
+
+CREATE OR REPLACE FUNCTION public.daily_summary(start_date integer, scheme_code varchar)
+	RETURNS TABLE(user_id uuid, date_value varchar, total_amount float, current_value float, total_change float)
+ 	LANGUAGE plpgsql
+AS
+$$
+ begin
+	return query 
+		select 
+			"dayReport".user_id,
+			CAST(to_char(CAST(to_timestamp(date) at time zone 'Asia/Kolkata' AS date ),'YYYY-MM-DD') as varchar) as year_month,
+			SUM("dayReport".total_amount) as total_amount,
+			SUM("dayReport".current_value) as current_value,
+			CAST(SUM(COALESCE(day_change, unrealised_amount)) as float) as total_change
+    from "dayReport" WHERE "dayReport".scheme_code = $2 and date >= $1 group by 1, 2 order by 2 desc;
+end;
+$$

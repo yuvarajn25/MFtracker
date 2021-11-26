@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import supabase from "./supabase";
 import Header from "./components/Header";
+import Dashboard from "./pages/Dashboard";
 
 function App(props) {
   const [session, setSession] = useState(supabase.auth.session());
@@ -65,6 +66,7 @@ function App(props) {
             <Login isLogin={false} />
           </Route>
           <PrivateRoute exact path="/home" component={Home} />
+          <PrivateRoute exact path="/dashboard" component={Dashboard} />
         </Switch>
       </Router>
     </ChakraProvider>

@@ -46,6 +46,11 @@ export default function Header() {
               Home
             </Link>
           </div>
+          <div style={{ marginLeft: "25px" }}>
+            <Link as={ReachLink} to="/dashboard">
+              Dashboard
+            </Link>
+          </div>
         </Flex>
         <HStack fontSize="1.75em" divider={<StackDivider />} spacing="24px">
           {ActionIcons.map((i, k) => (

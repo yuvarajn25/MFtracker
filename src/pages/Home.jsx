@@ -10,11 +10,10 @@ import {
   StatLabel,
   StatNumber,
 } from "@chakra-ui/react";
+import { set } from "lodash";
 import React, { useEffect, useState } from "react";
 import DataTable from "../components/DataTable";
-
-import supabase from "../supabase";
-import { fetchLastNavValues } from "../utils";
+import { getSummaryData } from "../utils";
 
 const columns = [
   {
@@ -139,63 +138,10 @@ function Home() {
   });
 
   useEffect(async () => {
-    if (summaryData.length === 0) {
-      const user = supabase.auth.user();
-      const { data } = await supabase.rpc("mf_summary").eq("user_id", user.id);
-      const navValues = await fetchLastNavValues(
-        data.map((d) => d.scheme_code)
-      );
-      const response = await Promise.all(
-        data.map(async (d) => {
-          const [res, preValue] = navValues[d.scheme_code];
-          const todayValue = res.nav * d.total_units;
-          const difference = todayValue - d.total_amount;
-          return {
-            ...d,
-            nav: res.nav,
-            lastDate: res.date,
-            preNav: preValue.nav,
-            preValue: preValue.nav * d.total_units,
-            todayValue,
-            difference,
-          };
-        })
-      );
-      const totalInvested = response.reduce(
-        (sum, item) => sum + item.total_amount,
-        0
-      );
-      const currentValue = response.reduce(
-        (sum, item) => sum + item.todayValue,
-        0
-      );
-      const totalPreValue = response.reduce(
-        (sum, item) => sum + item.preValue,
-        0
-      );
-      const totalRealized = response.reduce(
-        (sum, item) => sum + item.realised_amount,
-        0
-      );
-      const totalUnRealized = currentValue - totalInvested - totalRealized;
-      setSummaryData(response);
-      setSummary({
-        totalInvested: totalInvested.toFixed(2),
-        currentValue: currentValue.toFixed(2),
-        totalDayChange: (currentValue - totalPreValue).toFixed(2),
-        totalRealized: totalRealized.toFixed(2),
-        totalUnRealized: totalUnRealized.toFixed(2),
-        isProfit: currentValue - totalInvested - totalRealized > 0,
-        profitPercentage: `${((totalUnRealized / totalInvested) * 100).toFixed(
-          2
-        )}%`,
-        dayChangePercentage: `${(
-          ((currentValue - totalPreValue) / totalPreValue) *
-          100
-        ).toFixed(2)}%`,
-      });
-    }
-  }, [summaryData]);
+    const { summaryData, summary } = await getSummaryData();
+    setSummaryData(summaryData);
+    setSummary(summary);
+  }, []);
   return (
     <Flex direction="column" width="100%" height="100vh">
       <SimpleGrid minChildWidth="120px" spacing="40px" padding="40px">
